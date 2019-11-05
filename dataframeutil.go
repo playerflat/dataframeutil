@@ -5,7 +5,16 @@ import (
 	"strings"
 
 	"github.com/kniren/gota/dataframe"
+	"github.com/kniren/gota/series"
 )
+
+// DataFrame gota의 dataframe.DataFrame
+type DataFrame struct {
+	columns []series.Series
+	ncols   int
+	nrows   int
+	Err     error
+}
 
 // OpenCSV csv 간단하게 불러오기
 func OpenCSV(location string, Header bool, Delimiter rune) dataframe.DataFrame {
