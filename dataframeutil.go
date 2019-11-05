@@ -1,4 +1,4 @@
-package dataframeUtil
+package dataframeutil
 
 import (
 	"io/ioutil"
