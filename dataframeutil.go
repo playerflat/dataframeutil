@@ -20,7 +20,7 @@ func OpenCSV(location string, Header bool, Delimiter rune) dataframe.DataFrame {
 }
 
 // ReplaceNaN 데이터프레임의 NaN값을 원하는 값으로 변경
-func ReplaceNaN(df dataframe.DataFrame, NaNwords string, Newwords string) {
+func ReplaceNaN(df dataframe.DataFrame, NaNwords string, Newwords string) dataframe.DataFrame {
 	for i := 0; i < df.Nrow(); i++ {
 		for j := 0; j < df.Ncol(); j++ {
 			if df.Elem(i, j).String() == NaNwords {
@@ -28,4 +28,5 @@ func ReplaceNaN(df dataframe.DataFrame, NaNwords string, Newwords string) {
 			}
 		}
 	}
+	return df
 }
