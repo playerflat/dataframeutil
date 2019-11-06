@@ -1,12 +1,12 @@
-package main
+package dataframeutil
 
 import (
 	"database/sql"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/kniren/gota/dataframe"
 )
 
@@ -17,8 +17,8 @@ func CheckError(err error) {
 	}
 }
 
-// OpenCSV csv 파일을 데이터프레임으로 반환 (파일위치 string, 컬럼 헤더 여부 bool, 구분자 rune) 리턴타입 DataFrame
-func OpenCSV(location string, isColHeader bool, delimiter rune) dataframe.DataFrame {
+// LoadCSV csv 파일을 데이터프레임으로 반환 (파일위치 string, 컬럼 헤더 여부 bool, 구분자 rune) 리턴타입 DataFrame
+func LoadCSV(location string, isColHeader bool, delimiter rune) dataframe.DataFrame {
 	content, _ := ioutil.ReadFile(location)
 	ioContent := strings.NewReader(string(content))
 
@@ -27,6 +27,13 @@ func OpenCSV(location string, isColHeader bool, delimiter rune) dataframe.DataFr
 		dataframe.HasHeader(isColHeader))
 
 	return csv
+}
+
+func SaveCSV(df dataframe.DataFrame, location string) {
+	f, err := os.Create("test.csv")
+	CheckError(err)
+
+	df.WriteCSV(f)
 }
 
 // ReplaceElem 데이터프레임의 특정 값들을 원하는 값으로 변경(데이터프레임 df, 이전문자 string, 바꿀문자 string) 리턴타입 DataFrame
@@ -41,7 +48,7 @@ func ReplaceElem(df dataframe.DataFrame, oldstring string, newstring string) dat
 	return df
 }
 
-// Querytodf mysql DB에 쿼리를 날려 받아온 정보를 데이터프레임으로 반환(쿼리 string, DB 접속정보 `계정명:비밀번호@연결형식(ip:port)/DB이름`)
+// mysql DB에 쿼리를 날려 받아온 정보를 데이터프레임으로 반환(쿼리 string, DB 접속정보 `계정명:비밀번호@연결형식(ip:port)/DB이름`)
 func Querytodf(q string, DBinfo string) dataframe.DataFrame {
 	// Open database connection
 	db, err := sql.Open("mysql", DBinfo)
@@ -95,7 +102,7 @@ func Querytodf(q string, DBinfo string) dataframe.DataFrame {
 			} else {
 				value = string(col)
 			}
-			if i != 3 {
+			if i != len(columns)-1 {
 				template += value + ","
 			} else {
 				template += value + "\n"
