@@ -3,12 +3,40 @@ package dataframeutil
 import (
 	"database/sql"
 	"io/ioutil"
-	"log"
 	"os"
 	"strings"
 
 	"github.com/kniren/gota/dataframe"
 )
+
+var (
+	db *sql.DB
+)
+
+// Open 드라이버네임 string, DB 접속정보 string, maxopenconns int, maxidleconns int
+// ex) dataframeutil.Open("mysql", "id:pw@tcp(127.0.0.1:3306)/TESTDB", 10, 5)
+func Open(driverName string, dataSourceName string, MaxOpenConns int, MaxIdleConns int) (*sql.DB, error) {
+	db, err := sql.Open(driverName, dataSourceName)
+	CheckError(err)
+
+	db.SetMaxOpenConns(MaxOpenConns)
+	db.SetMaxIdleConns(MaxIdleConns)
+
+	return db, err
+}
+
+// Close Open한 DB 닫기
+func Close(db *sql.DB) {
+	db.Close()
+}
+
+// Exec sql.Exec와 동일
+func Exec(query string, args ...interface{}) (sql.Result, error) {
+	Result, err := db.Exec(query, args)
+	CheckError(err)
+
+	return Result, err
+}
 
 // 에러 검사
 func CheckError(err error) {
@@ -19,7 +47,8 @@ func CheckError(err error) {
 
 // LoadCSV csv 파일을 데이터프레임으로 반환 (파일위치 string, 컬럼 헤더 여부 bool, 구분자 rune) 리턴타입 DataFrame
 func LoadCSV(location string, isColHeader bool, delimiter rune) dataframe.DataFrame {
-	content, _ := ioutil.ReadFile(location)
+	content, err := ioutil.ReadFile(location)
+	CheckError(err)
 	ioContent := strings.NewReader(string(content))
 
 	csv := dataframe.ReadCSV(ioContent,
@@ -30,33 +59,26 @@ func LoadCSV(location string, isColHeader bool, delimiter rune) dataframe.DataFr
 }
 
 func SaveCSV(df dataframe.DataFrame, location string) {
-	f, err := os.Create("test.csv")
+	f, err := os.Create(location)
 	CheckError(err)
 
 	df.WriteCSV(f)
 }
 
 // ReplaceElem 데이터프레임의 특정 값들을 원하는 값으로 변경(데이터프레임 df, 이전문자 string, 바꿀문자 string) 리턴타입 DataFrame
-func ReplaceElem(df dataframe.DataFrame, oldstring string, newstring string) dataframe.DataFrame {
-	for i := 0; i < df.Nrow(); i++ {
-		for j := 0; j < df.Ncol(); j++ {
-			if df.Elem(i, j).String() == oldstring {
-				df.Elem(i, j).Set(newstring)
+func ReplaceElem(df dataframe.DataFrame, old interface{}, new interface{}) dataframe.DataFrame {
+	for c := 0; c < df.Ncol(); c++ {
+		for r := 0; r < df.Nrow(); r++ {
+			if df.Elem(r, c).String() == old {
+				df.Elem(r, c).Set(new)
 			}
 		}
 	}
 	return df
 }
 
-// mysql DB에 쿼리를 날려 받아온 정보를 데이터프레임으로 반환(쿼리 string, DB 접속정보 `계정명:비밀번호@연결형식(ip:port)/DB이름`)
-func Querytodf(q string, DBinfo string) dataframe.DataFrame {
-	// Open database connection
-	db, err := sql.Open("mysql", DBinfo)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
+// Querytodf mysql DB에 쿼리를 날려 받아온 정보를 데이터프레임으로 반환(데이터베이스 sql.DB, 쿼리 string)
+func Querytodf(db *sql.DB, q string) dataframe.DataFrame {
 	// Execute the query
 	rows, err := db.Query(q)
 	CheckError(err)
